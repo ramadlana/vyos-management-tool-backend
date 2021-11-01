@@ -21,6 +21,7 @@ const {
 const { RouterListModel, validateInventory } = require("../models/routerlist");
 
 const Netmask = require("netmask").Netmask;
+const { BridgeDomainMemberModel } = require("../models/bridgedomainmember");
 
 // Setup underlay
 router.post("/setupunderlay", async (req, res) => {
@@ -214,6 +215,9 @@ router.post("/load-init", async (req, res) => {
     );
     // Delete router from DB
     await RouterListModel.findByIdAndDelete(req.body.id);
+    await BridgeDomainMemberModel.findOneAndDelete({
+      idRouterListModel: req.body.id,
+    });
     return res.status(200).send({ success: true, message: result.data });
   }
   return res.status(400).send({ success: false, message: result });

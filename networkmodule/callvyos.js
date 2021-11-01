@@ -168,7 +168,22 @@ async function configureVyosSpoke(
   }
 }
 
-async function configureVxlan(managementIP, keyApi, vxlanId, tunnelAdd) {
+async function configureVxlan(
+  managementIP,
+  keyApi,
+  vxlanId,
+  tunnelAdd,
+  interfaceMember
+) {
+  let tempInterface = [];
+  interfaceMember.map((int) => {
+    tempInterface.push(
+      `{"op": "set", "path": ["interfaces", "bridge", "br${vxlanId}", "member", "interface", "${int}"]}`
+    );
+  });
+
+  tempInterface.join(",");
+
   encodedParams.set(
     "data",
     `[{"op": "set", "path": ["interfaces", "vxlan", "vxlan${vxlanId}"]},
@@ -176,9 +191,10 @@ async function configureVxlan(managementIP, keyApi, vxlanId, tunnelAdd) {
 {"op": "set", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "port", "4789"]},
 {"op": "set", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "source-address", "${tunnelAdd}"]},
 {"op": "set", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "vni", "${vxlanId}"]},
-{"op": "set", "path": ["interfaces", "bridge", "br${vxlanId}", "member", "interface", "vxlan${vxlanId}"]}]
+{"op": "set", "path": ["interfaces", "bridge", "br${vxlanId}", "member", "interface", "vxlan${vxlanId}"]}, ${tempInterface}]
   `
   );
+
   encodedParams.set("key", `${keyApi}`);
   const url = `https://${managementIP}/configure`;
   const options = {
