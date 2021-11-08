@@ -30,4 +30,8 @@ require("./startup/routes")(app);
  * start daemon web service
  */
 const port = conf.get("nodePort") || 3000;
-app.listen(port, () => console.log(`starting web service on port ${port}`));
+// app.listen(port, () => console.log(`starting web service on port ${port}`));
+let server = app.listen(port);
+// set keep alive conn 40 second
+server.keepAliveTimeout = 40 * 1000;
+console.log(`starting web service on port ${port}`);

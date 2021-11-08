@@ -10,6 +10,16 @@ const userSchema = new mongoose.Schema({
     require: true,
     unique: true,
   },
+  firstname: {
+    type: String,
+    max: 255,
+    require: true,
+  },
+  lastname: {
+    type: String,
+    max: 255,
+    require: true,
+  },
   email: {
     type: String,
     required: true,
@@ -42,6 +52,8 @@ User.prototype.generateAuthToken = function () {
       email: this.email,
       isActive: this.isActive,
       isAdmin: this.isAdmin,
+      firstname: this.firstname,
+      lastname: this.lastname,
     },
     conf.get("jwtSecret"),
     { expiresIn: "1000d" }
@@ -52,6 +64,8 @@ User.prototype.generateAuthToken = function () {
 function validate(reqBody) {
   const schema = Joi.object({
     username: Joi.string().max(255).required(),
+    firstname: Joi.string().max(255).required(),
+    lastname: Joi.string().max(255).required(),
     email: Joi.string().max(255).email(),
     password: Joi.string().max(300).required(),
   });

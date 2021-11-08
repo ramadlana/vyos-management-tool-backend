@@ -16,13 +16,13 @@ router.post("/login", async (req, res) => {
   if (!user)
     return res
       .status(401)
-      .send({ status: "error", message: "wrong username or password" });
+      .send({ status: "error", message: "wrong email or password" });
   //  if user email is valid, then validate password using brcrypt compare
   const validPassword = await bcrypt.compare(req.body.password, user.password);
   if (!validPassword)
     return res
       .status(401)
-      .send({ status: "error", message: "wrong username or password" });
+      .send({ status: "error", message: "wrong email or password" });
 
   //  if user& password valid then Generate token jwt. this function from model/users.js generateAuthToken()
   const token = user.generateAuthToken();
