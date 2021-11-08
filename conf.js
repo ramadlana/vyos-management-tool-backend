@@ -17,7 +17,7 @@ config.set("mongoPassword", "a%24QkQE3myJ.wahE");
 config.set("jwtSecret", "rahasia");
 
 // NODE PORT
-config.set("nodePort", 8000);
+config.set("nodePort", 8001);
 
 // JWT SECRET
 config.set("jwtSecret", "rahasia");
