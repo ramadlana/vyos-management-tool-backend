@@ -60,6 +60,24 @@ router.get("/member-of-bd/:id", async (req, res) => {
 
   return res.status(200).send({ success: true, message: result });
 });
+
+router.get("/member-vxlan-of-nodes/:id", async (req, res) => {
+  const idRouter = await req.params.id;
+  const result = await BridgeDomainMemberModel.find({
+    idRouterListModel: idRouter,
+  }).select("vniId bdName interfaceMember -_id");
+  // check using lodash is empty. return true if findObj return null or empty object
+  const empty = _.isEmpty(result);
+  // if empty then return not found
+  if (empty)
+    return res.status(404).send({
+      success: false,
+      message: "bridge domain not found",
+    });
+
+  return res.status(200).send({ success: true, message: result });
+});
+
 // Create Bridge Domain
 router.post("/create-new-bridge-domain", async (req, res) => {
   // Validate req.body object with validator
@@ -137,6 +155,7 @@ router.post("/add-bridge-domain-member", async (req, res) => {
     bdName: bridgeDomainListObj.bdName,
     routerName: routerListObj.routerName,
     interfaceMember: interfaceMember,
+    vniId: bridgeDomainListObj.vniId,
   });
 
   const save = await newMemberBd.save();

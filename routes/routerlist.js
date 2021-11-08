@@ -218,7 +218,9 @@ router.post("/load-init", async (req, res) => {
     await BridgeDomainMemberModel.findOneAndDelete({
       idRouterListModel: req.body.id,
     });
-    return res.status(200).send({ success: true, message: result.data });
+    return res
+      .status(200)
+      .send({ success: true, message: `Node Successfully deleted` });
   }
   return res.status(400).send({ success: false, message: result });
 });
