@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const CryptoJS = require("crypto-js");
 const { conf } = require("../conf");
+const _ = require("lodash");
 
 // call vyos function
 const {
@@ -9,6 +10,7 @@ const {
   configureVyosSpoke,
   saveConfigInit,
   loadConfigInit,
+  getInterface,
 } = require("../networkmodule/callvyos");
 
 // setup block tunnel claim Model
@@ -90,9 +92,21 @@ router.post("/", async (req, res) => {
     conf.get("cryptoSecret")
   ).toString();
 
+  let ipManagementWithoutMask = req.body.management;
+  ipManagementWithoutMask = ipManagementWithoutMask.substr(
+    0,
+    ipManagementWithoutMask.lastIndexOf("/")
+  );
+
   try {
     // Get one not claimed yet IP , and Claim it
     const getTunnelIp = await BlockTunnelModel.findOne({ isClaimed: false });
+
+    // get ethernet List from api
+    const { data: dataInterface } = await getInterface(
+      ipManagementWithoutMask,
+      req.body.keyApi
+    );
 
     // Associate newIpaddress ro router attributes
     const newRouterInput = new RouterListModel({
@@ -105,17 +119,12 @@ router.post("/", async (req, res) => {
       role: req.body.role,
       keyApi: routerKeyApiEncrypted,
       nhrpSecret: routerNhrpSecretEncrypted,
+      interfaceList: _.pull(_.keys(dataInterface.ethernet), "eth0"),
       bgp: {
         localAs: req.body.bgp.localAs,
         remoteAs: req.body.bgp.remoteAs,
       },
     });
-
-    let ipManagementWithoutMask = req.body.management;
-    ipManagementWithoutMask = ipManagementWithoutMask.substr(
-      0,
-      ipManagementWithoutMask.lastIndexOf("/")
-    );
 
     let resultConfig;
     const getTunnelBlockSubnet = getTunnelIp.ipBlockTunnel;
@@ -156,6 +165,7 @@ router.post("/", async (req, res) => {
         newRouterInput.bgp.remoteAs
       );
       resultConfig = pushConfigInit;
+
       // if save to db success but, something wrong in call vyos, its rollback to delete in database entry
       if (!resultConfig.success) {
         await RouterListModel.findByIdAndDelete(dataRouterInput._id);
@@ -168,21 +178,24 @@ router.post("/", async (req, res) => {
         isClaimed: true,
         claimedBy: dataRouterInput._id,
       });
-      return res.status(200).send({
+      return res.status(201).send({
         success: true,
-        message: resultConfig,
+        message: "Node Successfully Added",
+        detail: resultConfig,
       });
     } else {
       return res.status(400).send({
         success: false,
         message: resultConfig.error || "unknown error",
-        detail: resultConfig,
+        detail: resultConfig.code,
       });
     }
   } catch (error) {
-    res
-      .status(400)
-      .send({ success: false, message: error.message, detail: error });
+    let errMsg;
+    if (error.code === 11000) {
+      errMsg = "Node Already Added";
+    }
+    res.status(400).send({ success: false, message: errMsg, detail: error });
   }
 });
 

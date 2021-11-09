@@ -15,11 +15,12 @@ module.exports = function () {
       useUnifiedTopology: true,
       useCreateIndex: true,
       useFindAndModify: false,
+      autoIndex: true,
     }
     // End of - Connect to mongo cluster compass
 
     // Connect to mongo localhost ubuntu
-    // `mongodb://root:mongopass@192.168.154.113:27017/?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&ssl=false`,
+    // `mongodb://root:mongopass@192.168.154.113:27017/${databaseName}?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&ssl=false`,
     // {
     //   useNewUrlParser: true,
     //   useUnifiedTopology: true,

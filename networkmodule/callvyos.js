@@ -261,6 +261,30 @@ async function loadConfigInit(managementIP, keyApi) {
   }
 }
 
+// to get ethernet interface
+async function getInterface(managementIP, keyApi) {
+  encodedParams.set(
+    "data",
+    '{"op": "showConfig", "path": ["interfaces", "ethernet"]}'
+  );
+  encodedParams.set("key", `${keyApi}`);
+  const url = `https://${managementIP}/retrieve`;
+  const options = {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: encodedParams,
+    agent: httpsAgent,
+  };
+  try {
+    const result = await fetch(url, options);
+    const resultAsJson = await result.json();
+    return resultAsJson;
+  } catch (error) {
+    return error.type || "unknown error, check call vyos function";
+  }
+}
+
+exports.getInterface = getInterface;
 exports.configureVxlan = configureVxlan;
 exports.configureVyosHub = configureVyosHub;
 exports.configureVyosSpoke = configureVyosSpoke;

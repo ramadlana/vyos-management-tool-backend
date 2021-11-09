@@ -48,6 +48,7 @@ const routerListSchema = mongoose.Schema({
   },
   routerUsername: { type: String, required: true },
   routerPassword: { type: String, required: true },
+  interfaceList: [{ type: String }],
 });
 
 const RouterListModel = mongoose.model("RouterListModel", routerListSchema);

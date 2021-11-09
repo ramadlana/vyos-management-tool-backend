@@ -113,7 +113,8 @@ router.post("/create-new-bridge-domain", async (req, res) => {
 
 // Assoc nodes to bridge domain
 router.post("/add-bridge-domain-member", async (req, res) => {
-  const { idRouter, idBridgeDomain, interfaceMember } = req.body;
+  const { idRouter, idBridgeDomain } = req.body;
+  const interfaceMember = [];
   // Get id BridgeDomainList and RouterListModel
   const bridgeDomainListObj = await BridgeDomainListModel.findById(
     idBridgeDomain
