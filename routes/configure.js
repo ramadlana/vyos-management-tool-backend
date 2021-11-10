@@ -3,7 +3,6 @@ const express = require("express");
 const router = express.Router();
 const Joi = require("joi");
 const _ = require("lodash");
-var mongoose = require("mongoose");
 const CryptoJS = require("crypto-js");
 const { conf } = require("../conf");
 
@@ -11,7 +10,6 @@ const { conf } = require("../conf");
 const { RouterListModel } = require("../models/routerlist");
 const { BridgeDomainListModel } = require("../models/bridgedomainlist");
 const { BridgeDomainMemberModel } = require("../models/bridgedomainmember");
-const { string, number } = require("joi");
 const {
   associateNodeToBridgeDomain,
   assocIntVxlan,

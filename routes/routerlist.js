@@ -58,7 +58,7 @@ router.post("/setupunderlay", async (req, res) => {
 // Router List (GET)
 router.get("/router", async (req, res) => {
   const allRouter = await RouterListModel.find().select(
-    "_id management tunnel routerName"
+    "_id management tunnel routerName interfaceList"
   ); //Exclude _id and __v from json reply
   return res.status(200).send({ success: true, message: allRouter });
 });
