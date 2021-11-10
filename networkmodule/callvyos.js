@@ -168,21 +168,21 @@ async function configureVyosSpoke(
   }
 }
 
-async function configureVxlan(
+async function associateNodeToBridgeDomain(
   managementIP,
   keyApi,
   vxlanId,
   tunnelAdd,
   interfaceMember
 ) {
-  let tempInterface = [];
-  interfaceMember.map((int) => {
-    tempInterface.push(
-      `{"op": "set", "path": ["interfaces", "bridge", "br${vxlanId}", "member", "interface", "${int}"]}`
-    );
-  });
+  // let tempInterface = [];
+  // interfaceMember.map((int) => {
+  //   tempInterface.push(
+  //     `{"op": "set", "path": ["interfaces", "bridge", "br${vxlanId}", "member", "interface", "${int}"]}`
+  //   );
+  // });
 
-  tempInterface.join(",");
+  // tempInterface.join(",");
 
   encodedParams.set(
     "data",
@@ -191,8 +191,39 @@ async function configureVxlan(
 {"op": "set", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "port", "4789"]},
 {"op": "set", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "source-address", "${tunnelAdd}"]},
 {"op": "set", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "vni", "${vxlanId}"]},
-{"op": "set", "path": ["interfaces", "bridge", "br${vxlanId}", "member", "interface", "vxlan${vxlanId}"]}, ${tempInterface}]
+{"op": "set", "path": ["interfaces", "bridge", "br${vxlanId}", "member", "interface", "vxlan${vxlanId}"]}]
   `
+  );
+
+  encodedParams.set("key", `${keyApi}`);
+  const url = `https://${managementIP}/configure`;
+  const options = {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: encodedParams,
+    agent: httpsAgent,
+  };
+
+  try {
+    const result = await fetch(url, options);
+    const resultAsJson = await result.json();
+    return resultAsJson;
+  } catch (error) {
+    return error.message || "unknown error, check call vyos function";
+  }
+}
+
+// Associate and Deassociate interface to vxlan
+async function assocIntVxlan(
+  operation,
+  managementIP,
+  keyApi,
+  vxlanId,
+  interface
+) {
+  encodedParams.set(
+    "data",
+    `{"op": "${operation}", "path": ["interfaces", "bridge", "br${vxlanId}", "member", "interface", "${interface}"]}`
   );
 
   encodedParams.set("key", `${keyApi}`);
@@ -284,8 +315,9 @@ async function getInterface(managementIP, keyApi) {
   }
 }
 
+exports.assocIntVxlan = assocIntVxlan;
 exports.getInterface = getInterface;
-exports.configureVxlan = configureVxlan;
+exports.associateNodeToBridgeDomain = associateNodeToBridgeDomain;
 exports.configureVyosHub = configureVyosHub;
 exports.configureVyosSpoke = configureVyosSpoke;
 exports.saveConfigInit = saveConfigInit;
