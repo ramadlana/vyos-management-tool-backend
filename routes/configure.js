@@ -8,10 +8,11 @@ const { conf } = require("../conf");
 
 // Import local module and model
 const { RouterListModel } = require("../models/routerlist");
+const dstnat = require("../models/dstnat");
 const { BridgeDomainListModel } = require("../models/bridgedomainlist");
 const { BridgeDomainMemberModel } = require("../models/bridgedomainmember");
 const {
-  associateNodeToBridgeDomain,
+  nodeToBridgeDomain,
   assocIntVxlan,
 } = require("../networkmodule/callvyos");
 
@@ -167,7 +168,6 @@ router.post("/add-bridge-domain-member", async (req, res) => {
     idRouterListModel: routerListObj._id,
     bdName: bridgeDomainListObj.bdName,
     routerName: routerListObj.routerName,
-    interfaceMember: interfaceMember,
     vniId: bridgeDomainListObj.vniId,
   });
 
@@ -187,19 +187,75 @@ router.post("/add-bridge-domain-member", async (req, res) => {
     );
     let apiKeyDecrypted = apiKeyEncryptedAsBytes.toString(CryptoJS.enc.Utf8);
 
-    const vxlanConf = await associateNodeToBridgeDomain(
+    const vxlanConf = await nodeToBridgeDomain(
+      "set",
       routerIp,
       apiKeyDecrypted,
       bridgeDomainListObj.vniId,
-      tunnelAdd,
-      interfaceMember
+      tunnelAdd
     );
-    return res.status(200).send({ success: true, message: vxlanConf });
+    if (vxlanConf.success)
+      return res.status(200).send({
+        success: true,
+        message: "Node Successfully Added to Bridge Domain",
+      });
   } else
     return res.status(400).send({
       success: false,
       message: "failed to push",
     });
+});
+
+// Deassoc node from bridge domain
+router.post("/remove-bridge-domain-member", async (req, res) => {
+  // get req body
+  const { idBridgeDomain, idRouter } = req.body;
+
+  // get BRIDGE DOMAIN OBJ
+  const brObj = await BridgeDomainListModel.findById(idBridgeDomain);
+  if (!brObj)
+    return res
+      .status(404)
+      .send({ success: false, message: "Bridge domain not found" });
+
+  // get ROUTER OBJ
+  const rtrObj = await RouterListModel.findById(idRouter);
+  if (!rtrObj)
+    return res
+      .status(404)
+      .send({ success: false, message: "Bridge domain not found" });
+
+  // get property needed
+  const routerIp = removeMask(rtrObj.management);
+  const apiKeyDecrypted = decrypt(rtrObj.keyApi);
+  const vniId = brObj.vniId;
+  const tunnelAdd = removeMask(rtrObj.tunnel);
+
+  const vxlanConf = await nodeToBridgeDomain(
+    "delete",
+    routerIp,
+    apiKeyDecrypted,
+    vniId,
+    tunnelAdd
+  );
+  if (!vxlanConf.success)
+    return res.status(404).send({
+      success: false,
+      message: "Remove config from router failed",
+      details: vxlanConf,
+    });
+
+  // remove from BRIDGE DOMAIN MEMBER MODELS
+  await BridgeDomainMemberModel.findOneAndDelete({
+    idRouterListModel: idRouter,
+    idBridgeDomainList: idBridgeDomain,
+  });
+
+  // Return success
+  return res.status(200).send({
+    success: true,
+    message: "Bridge domain successfully deassociated",
+  });
 });
 
 // Assoc interface to vxlan on selected nodes
@@ -334,6 +390,35 @@ router.post("/deassoc-int-vxlan", async (req, res) => {
   return res
     .status(400)
     .send({ success: false, message: "interfaces failed Deassociated" });
+});
+
+// list current dstnat
+router.get("/dstnat", async (req, res) => {
+  // get list of rules and return it
+});
+
+// add new dstnat
+router.post("/dstnat", async (req, res) => {
+  // get request body
+  const { ruleNumber, description, destPort, inbInt, proto, transAdd } =
+    req.body;
+  // get list of rules get("/dstnat")
+  // check if rule number is already exist
+  // create new instance model dstnat
+  const newDst = new dstnat.DstNatModel({
+    ruleNumber,
+    description,
+    destPort,
+    inbInt,
+    proto,
+    transAdd,
+  });
+  await newDst.save();
+  return res
+    .status(200)
+    .send({ success: true, message: "DSTNAT successfully added" });
+  // get {ruleNumber, description, destPort, inbInt, proto, transAdd}
+  // call function on callvyos
 });
 
 exports.configure = router;

@@ -168,30 +168,22 @@ async function configureVyosSpoke(
   }
 }
 
-async function associateNodeToBridgeDomain(
+// Associate and Deassociate
+async function nodeToBridgeDomain(
+  operation,
   managementIP,
   keyApi,
   vxlanId,
-  tunnelAdd,
-  interfaceMember
+  tunnelAdd
 ) {
-  // let tempInterface = [];
-  // interfaceMember.map((int) => {
-  //   tempInterface.push(
-  //     `{"op": "set", "path": ["interfaces", "bridge", "br${vxlanId}", "member", "interface", "${int}"]}`
-  //   );
-  // });
-
-  // tempInterface.join(",");
-
   encodedParams.set(
     "data",
-    `[{"op": "set", "path": ["interfaces", "vxlan", "vxlan${vxlanId}"]},
-{"op": "set", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "parameters", "nolearning"]},
-{"op": "set", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "port", "4789"]},
-{"op": "set", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "source-address", "${tunnelAdd}"]},
-{"op": "set", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "vni", "${vxlanId}"]},
-{"op": "set", "path": ["interfaces", "bridge", "br${vxlanId}", "member", "interface", "vxlan${vxlanId}"]}]
+    `[{"op": "${operation}", "path": ["interfaces", "vxlan", "vxlan${vxlanId}"]},
+{"op": "${operation}", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "parameters", "nolearning"]},
+{"op": "${operation}", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "port", "4789"]},
+{"op": "${operation}", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "source-address", "${tunnelAdd}"]},
+{"op": "${operation}", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "vni", "${vxlanId}"]},
+{"op": "${operation}", "path": ["interfaces", "bridge", "br${vxlanId}", "member", "interface", "vxlan${vxlanId}"]}]
   `
   );
 
@@ -317,7 +309,7 @@ async function getInterface(managementIP, keyApi) {
 
 exports.assocIntVxlan = assocIntVxlan;
 exports.getInterface = getInterface;
-exports.associateNodeToBridgeDomain = associateNodeToBridgeDomain;
+exports.nodeToBridgeDomain = nodeToBridgeDomain;
 exports.configureVyosHub = configureVyosHub;
 exports.configureVyosSpoke = configureVyosSpoke;
 exports.saveConfigInit = saveConfigInit;
