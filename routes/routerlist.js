@@ -55,6 +55,19 @@ router.post("/setupunderlay", async (req, res) => {
   });
 });
 
+// Check underlay already build or not
+router.get("/check-underlay", async (req, res) => {
+  const checkAlreadySetup = await BlockTunnelModel.countDocuments();
+  if (checkAlreadySetup !== 0)
+    return res
+      .status(400)
+      .send({ success: false, message: "You already setup underlay" });
+  return res
+    .status(200)
+    .send({ success: true, message: "Underlay not setup yet" });
+});
+
+
 // Router List (GET)
 router.get("/router", async (req, res) => {
   const allRouter = await RouterListModel.find().select(

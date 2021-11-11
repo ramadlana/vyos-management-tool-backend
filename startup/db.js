@@ -5,7 +5,7 @@ const databaseName = conf.get("mongoDatabase"); // database Name
 const username = conf.get("mongoUser");
 const password = conf.get("mongoPassword");
 // Connect in here, and operate on another files
-
+// mongoose     5.13.2  5.13.13  6.0.12  vyos-app
 module.exports = function () {
   mongoose.connect(
     // Connect to mongo cluster compass
@@ -24,8 +24,8 @@ module.exports = function () {
     {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      useCreateIndex: true,
-      useFindAndModify: false,
+      // useCreateIndex: true,
+      // useFindAndModify: false,
     }
     // // End of -Connect to mongo localhost ubuntu
   );
