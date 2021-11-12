@@ -3,10 +3,9 @@ const express = require("express");
 const router = express.Router();
 const Joi = require("joi");
 const _ = require("lodash");
-const CryptoJS = require("crypto-js");
-const { conf } = require("../conf");
 
 // Import local module and model
+const { decrypt, removeMask } = require("../local_modules/common_operations");
 const { RouterListModel } = require("../models/routerlist");
 const dstnat = require("../models/dstnat");
 const { BridgeDomainListModel } = require("../models/bridgedomainlist");
@@ -15,17 +14,6 @@ const {
   nodeToBridgeDomain,
   assocIntVxlan,
 } = require("../networkmodule/callvyos");
-
-function removeMask(ipadd) {
-  let ipWoMask = ipadd;
-  ipWoMask = ipWoMask.substr(0, ipWoMask.lastIndexOf("/"));
-  return ipWoMask;
-}
-
-function decrypt(enc) {
-  let decrypted = CryptoJS.AES.decrypt(enc, conf.get("cryptoSecret"));
-  return decrypted.toString(CryptoJS.enc.Utf8);
-}
 
 router.get("/bridgedomain", async (req, res) => {
   // find all item in (BridgeDomainListModel) then populate routerName in (inventoryModel) into associatedNode.nodeId field in (BridgeDomainListModel) then select (vxlanName vniId associatedNode) field only to return
@@ -180,12 +168,7 @@ router.post("/add-bridge-domain-member", async (req, res) => {
     let tunnelAdd = routerListObj.tunnel;
     tunnelAdd = tunnelAdd.substr(0, tunnelAdd.lastIndexOf("/"));
 
-    const apiKeyEncrypted = routerListObj.keyApi;
-    let apiKeyEncryptedAsBytes = CryptoJS.AES.decrypt(
-      apiKeyEncrypted,
-      conf.get("cryptoSecret")
-    );
-    let apiKeyDecrypted = apiKeyEncryptedAsBytes.toString(CryptoJS.enc.Utf8);
+    let apiKeyDecrypted = decrypt(routerListObj.keyApi);
 
     const vxlanConf = await nodeToBridgeDomain(
       "set",

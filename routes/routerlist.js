@@ -67,11 +67,10 @@ router.get("/check-underlay", async (req, res) => {
     .send({ success: true, message: "Underlay not setup yet" });
 });
 
-
 // Router List (GET)
 router.get("/router", async (req, res) => {
   const allRouter = await RouterListModel.find().select(
-    "_id management tunnel routerName interfaceList"
+    "_id management tunnel routerName interfaceList bgp role "
   ); //Exclude _id and __v from json reply
   return res.status(200).send({ success: true, message: allRouter });
 });
@@ -86,12 +85,7 @@ router.post("/", async (req, res) => {
       message: validate.error.details[0].message,
     });
 
-  // encrypt user password router
-  /**
-   * Use this to decrypt
-   * let bytes = CryptoJS.AES.decrypt(routerPassword, conf.get("cryptoSecret"));
-   * let decryptedText = bytes.toString(CryptoJS.enc.Utf8);
-   */
+  // Encrypt
   let routerPasswordEncrypted = CryptoJS.AES.encrypt(
     req.body.routerPassword,
     conf.get("cryptoSecret")
@@ -269,6 +263,7 @@ router.post("/save-init", async (req, res) => {
 
   // call save config
   const result = await saveConfigInit(routerIp, apiKeyDecrypted);
+
   // if success reset router, delete database
   if (result.success) {
     return res.status(200).send({ success: true, result });
