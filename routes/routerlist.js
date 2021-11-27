@@ -24,6 +24,7 @@ const { RouterListModel, validateInventory } = require("../models/routerlist");
 
 const Netmask = require("netmask").Netmask;
 const { BridgeDomainMemberModel } = require("../models/bridgedomainmember");
+const { BridgeDomainListModel } = require("../models/bridgedomainlist");
 
 // Setup underlay
 router.post("/setupunderlay", async (req, res) => {
@@ -55,6 +56,29 @@ router.post("/setupunderlay", async (req, res) => {
   });
 });
 
+// reset underlay
+router.post("/resetunderlay", async (req, res) => {
+  // check routerlistmodels db have record or not
+  const rtr_obj = await RouterListModel.estimatedDocumentCount();
+
+  // if data exist. return "please reset all node first"
+  if (rtr_obj !== 0)
+    return res.status(400).send({
+      success: false,
+      message:
+        "there some router or node is using underlay, please reset all nodes before reset underlay",
+    });
+
+  // if data not exist. delete blocktunnelmodels all record
+  await BlockTunnelModel.deleteMany();
+  await BridgeDomainListModel.deleteMany();
+  await BridgeDomainMemberModel.deleteMany();
+
+  return res
+    .status(200)
+    .send({ success: true, message: "Underlay reset successfully" });
+});
+
 // Check underlay already build or not
 router.get("/check-underlay", async (req, res) => {
   const checkAlreadySetup = await BlockTunnelModel.countDocuments();
@@ -65,6 +89,16 @@ router.get("/check-underlay", async (req, res) => {
   return res
     .status(200)
     .send({ success: true, message: "Underlay not setup yet" });
+});
+
+// underlay info
+router.get("/info-underlay", async (req, res) => {
+  const count_used = await BlockTunnelModel.count({ isClaimed: true });
+  const count_avail = await BlockTunnelModel.count({ isClaimed: false });
+  return res.status(200).send({
+    success: true,
+    message: { underlay_used: count_used, underlay_available: count_avail },
+  });
 });
 
 // Router List (GET)
@@ -108,6 +142,12 @@ router.post("/", async (req, res) => {
   try {
     // Get one not claimed yet IP , and Claim it
     const getTunnelIp = await BlockTunnelModel.findOne({ isClaimed: false });
+    if (!getTunnelIp)
+      return res.status(400).send({
+        success: false,
+        message:
+          "Underlay is not ready or not setup yet. Please setup underlay firts",
+      });
 
     // get ethernet List from api
     const dataInterface = await getInterface(
@@ -118,7 +158,6 @@ router.post("/", async (req, res) => {
       return res
         .status(400)
         .send({ success: false, message: "wrong router vyos API KEY" });
-
     // Associate newIpaddress ro router attributes
     const newRouterInput = new RouterListModel({
       management: req.body.management,
