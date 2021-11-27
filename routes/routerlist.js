@@ -110,10 +110,14 @@ router.post("/", async (req, res) => {
     const getTunnelIp = await BlockTunnelModel.findOne({ isClaimed: false });
 
     // get ethernet List from api
-    const { data: dataInterface } = await getInterface(
+    const dataInterface = await getInterface(
       ipManagementWithoutMask,
       req.body.keyApi
     );
+    if (!dataInterface.success)
+      return res
+        .status(400)
+        .send({ success: false, message: "wrong router vyos API KEY" });
 
     // Associate newIpaddress ro router attributes
     const newRouterInput = new RouterListModel({

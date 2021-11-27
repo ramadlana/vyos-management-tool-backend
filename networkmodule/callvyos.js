@@ -317,7 +317,30 @@ async function getInterface(managementIP, keyApi) {
     const resultAsJson = await result.json();
     return resultAsJson;
   } catch (error) {
-    return error.type || "unknown error, check call vyos function";
+    return error || "unknown error, check call vyos function";
+  }
+}
+
+// to get ethernet interface
+async function confInter(operation, managementIP, keyApi, interface, ipMask) {
+  encodedParams.set(
+    "data",
+    `{"op": "${operation}", "path": ["interfaces", "ethernet", "${interface}", "address", "${ipMask}"]}`
+  );
+  encodedParams.set("key", `${keyApi}`);
+  const url = `https://${managementIP}/configure`;
+  const options = {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: encodedParams,
+    agent: httpsAgent,
+  };
+  try {
+    const result = await fetch(url, options);
+    const resultAsJson = await result.json();
+    return resultAsJson;
+  } catch (error) {
+    return "unknown error, check call vyos function" + error;
   }
 }
 
@@ -328,3 +351,4 @@ exports.configureVyosHub = configureVyosHub;
 exports.configureVyosSpoke = configureVyosSpoke;
 exports.saveConfigInit = saveConfigInit;
 exports.loadConfigInit = loadConfigInit;
+exports.confInter = confInter;

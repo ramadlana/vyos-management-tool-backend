@@ -13,6 +13,7 @@ const { BridgeDomainMemberModel } = require("../models/bridgedomainmember");
 const {
   nodeToBridgeDomain,
   assocIntVxlan,
+  confInter,
 } = require("../networkmodule/callvyos");
 
 router.get("/bridgedomain", async (req, res) => {
@@ -482,6 +483,82 @@ router.post("/dstnat", async (req, res) => {
     .send({ success: true, message: "DSTNAT successfully added" });
   // get {ruleNumber, description, destPort, inbInt, proto, transAdd}
   // call function on callvyos
+});
+
+router.post("/ibgp-add-address", async (req, res) => {
+  // get req body
+  const { idRouter, interface, ipAddress } = req.body;
+  // get router obj info
+  const rtr_obj = await RouterListModel.findById(idRouter);
+  if (!rtr_obj)
+    return res
+      .status(404)
+      .send({ success: false, message: "id router not found" });
+  // get var
+  managementIP = removeMask(rtr_obj.management);
+  keyApi = decrypt(rtr_obj.keyApi);
+  // call vyos conf
+  try {
+    const conf = await confInter(
+      "set",
+      managementIP,
+      keyApi,
+      interface,
+      ipAddress
+    );
+    if (!conf.success)
+      return res.status(400).send({
+        success: false,
+        message: "cannot push to device or router",
+        detail: conf,
+      });
+
+    // return success
+    return res.status(200).send({
+      success: true,
+      message: "successfully added to iBGP routing table",
+    });
+  } catch (error) {
+    return res.status(400).send({ success: false, message: error });
+  }
+});
+
+router.post("/ibgp-remove-address", async (req, res) => {
+  // get req body
+  const { idRouter, interface, ipAddress } = req.body;
+  // get router obj info
+  const rtr_obj = await RouterListModel.findById(idRouter);
+  if (!rtr_obj)
+    return res
+      .status(404)
+      .send({ success: false, message: "id router not found" });
+  // get var
+  managementIP = removeMask(rtr_obj.management);
+  keyApi = decrypt(rtr_obj.keyApi);
+  // call vyos conf
+  try {
+    const conf = await confInter(
+      "delete",
+      managementIP,
+      keyApi,
+      interface,
+      ipAddress
+    );
+    if (!conf.success)
+      return res.status(400).send({
+        success: false,
+        message: "cannot push to device or router",
+        detail: conf,
+      });
+
+    // return success
+    return res.status(200).send({
+      success: true,
+      message: "successfully deleted from iBGP routing table",
+    });
+  } catch (error) {
+    return res.status(400).send({ success: false, message: error });
+  }
 });
 
 exports.configure = router;
