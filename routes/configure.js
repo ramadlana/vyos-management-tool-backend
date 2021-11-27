@@ -173,7 +173,6 @@ router.post("/delete-bridge-domain", async (req, res) => {
         rtrObj.interfaceList,
         router.interfaceMember
       );
-      console.log(rtrObj.interfaceList);
 
       await rtrObj.save();
 
