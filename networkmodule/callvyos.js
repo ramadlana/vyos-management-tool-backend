@@ -176,16 +176,30 @@ async function nodeToBridgeDomain(
   vxlanId,
   tunnelAdd
 ) {
-  encodedParams.set(
-    "data",
-    `[{"op": "${operation}", "path": ["interfaces", "vxlan", "vxlan${vxlanId}"]},
+  if (operation === "set") {
+    encodedParams.set(
+      "data",
+      `[{"op": "${operation}", "path": ["interfaces", "vxlan", "vxlan${vxlanId}"]},
 {"op": "${operation}", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "parameters", "nolearning"]},
 {"op": "${operation}", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "port", "4789"]},
 {"op": "${operation}", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "source-address", "${tunnelAdd}"]},
 {"op": "${operation}", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "vni", "${vxlanId}"]},
 {"op": "${operation}", "path": ["interfaces", "bridge", "br${vxlanId}", "member", "interface", "vxlan${vxlanId}"]}]
   `
-  );
+    );
+  } else {
+    encodedParams.set(
+      "data",
+      `[{"op": "${operation}", "path": ["interfaces", "vxlan", "vxlan${vxlanId}"]},
+{"op": "${operation}", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "parameters", "nolearning"]},
+{"op": "${operation}", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "port", "4789"]},
+{"op": "${operation}", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "source-address", "${tunnelAdd}"]},
+{"op": "${operation}", "path": ["interfaces", "vxlan", "vxlan${vxlanId}", "vni", "${vxlanId}"]},
+{"op": "${operation}", "path": ["interfaces", "bridge", "br${vxlanId}", "member", "interface", "vxlan${vxlanId}"]},
+{"op": "${operation}", "path": ["interfaces", "bridge", "br${vxlanId}"]}]
+  `
+    );
+  }
 
   encodedParams.set("key", `${keyApi}`);
   const url = `https://${managementIP}/configure`;

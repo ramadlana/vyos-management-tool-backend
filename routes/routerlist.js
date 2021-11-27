@@ -139,7 +139,6 @@ router.post("/", async (req, res) => {
     const tunnelBlockSubnet = `${getMask.base}/${getMask.bitmask}`;
 
     const dataRouterInput = await newRouterInput.save();
-
     if (dataRouterInput.status === "error")
       return res.status(400).send({ success: false, message: dataRouterInput });
     if (req.body.role === "hub") {
@@ -201,7 +200,7 @@ router.post("/", async (req, res) => {
     let errMsg;
     if (error.code === 11000) {
       errMsg = "Node Already Added";
-    }
+    } else errMsg = error;
     res.status(400).send({ success: false, message: errMsg, detail: error });
   }
 });

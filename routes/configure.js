@@ -112,6 +112,86 @@ router.post("/create-new-bridge-domain", async (req, res) => {
   }
 });
 
+router.post("/delete-bridge-domain", async (req, res) => {
+  const { idBridge } = req.body;
+
+  // check if id on BridgeDomainListModel is model exist
+  try {
+    const bd = await BridgeDomainListModel.findById(idBridge);
+    // if id not found in bridge domain member model, so member not found and delete it immediately
+    if (!bd) {
+      return res
+        .status(404)
+        .send({ success: false, message: "id Bridge not found" });
+    }
+  } catch (error) {
+    return res.status(400).send({
+      success: false,
+      message:
+        "something happen when finding id bridge, please check idbride make sure is exist" ||
+        error.name,
+      err_code: "001",
+    });
+  }
+
+  // check BridgeDomainMemberModel member is exist
+  try {
+    const member = await BridgeDomainMemberModel.find({
+      idBridgeDomainList: idBridge,
+    });
+    // if not existt member is empty list that falsy
+    if (_.isEmpty(member)) {
+      // delete from BridgeDomainListModel directly when no member attached
+      await BridgeDomainListModel.findByIdAndDelete(idBridge);
+      return res.status(200).send({
+        success: true,
+        message:
+          "member dont have any member, bridge deleted from database directly ",
+      });
+    }
+
+    // if member exist call config vyos API and delete it one by one
+    member.forEach(async (router) => {
+      // get rtr objt
+      const rtrObj = await RouterListModel.findById(router.idRouterListModel);
+      const routerIp = removeMask(rtrObj.management);
+      const apiKeyDecrypted = decrypt(rtrObj.keyApi);
+      const vniId = router.vniId;
+      const tunnelAdd = removeMask(rtrObj.tunnel);
+
+      const vxlanConf = await nodeToBridgeDomain(
+        "delete",
+        routerIp,
+        apiKeyDecrypted,
+        vniId,
+        tunnelAdd
+      );
+
+      // delete after executed
+      await BridgeDomainMemberModel.deleteMany({
+        idBridgeDomainList: idBridge,
+        idRouterListModel: router.idRouterListModel,
+      });
+
+      if (!vxlanConf.success)
+        return res.status(404).send({
+          success: false,
+          message: "Remove config from router failed",
+          details: vxlanConf,
+        });
+    });
+    // delete from bridge model list
+    await BridgeDomainListModel.findByIdAndDelete(idBridge);
+  } catch (error) {
+    return res.status(400).send({
+      success: false,
+      message:
+        "something happen when check BridgeDomainMemberModel member is exist ",
+    });
+  }
+
+  return res.status(200).send({ success: true, message: "ok" });
+});
 // Assoc nodes to bridge domain
 router.post("/add-bridge-domain-member", async (req, res) => {
   const { idRouter, idBridgeDomain } = req.body;
