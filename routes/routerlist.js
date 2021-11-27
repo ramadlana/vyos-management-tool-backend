@@ -169,7 +169,7 @@ router.post("/", async (req, res) => {
       role: req.body.role,
       keyApi: routerKeyApiEncrypted,
       nhrpSecret: routerNhrpSecretEncrypted,
-      interfaceList: _.pull(_.keys(dataInterface.ethernet), "eth0"),
+      interfaceList: _.pull(_.keys(dataInterface.data.ethernet), "eth0"),
       bgp: {
         localAs: req.body.bgp.localAs,
         remoteAs: req.body.bgp.remoteAs,
@@ -244,7 +244,13 @@ router.post("/", async (req, res) => {
     if (error.code === 11000) {
       errMsg = "Node Already Added";
     } else errMsg = error;
-    res.status(400).send({ success: false, message: errMsg, detail: error });
+    res
+      .status(400)
+      .send({
+        success: false,
+        message: "unhandled error #33444",
+        detail: error,
+      });
   }
 });
 

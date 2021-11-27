@@ -168,6 +168,15 @@ router.post("/delete-bridge-domain", async (req, res) => {
         tunnelAdd
       );
 
+      // get back interfaces
+      rtrObj.interfaceList = _.union(
+        rtrObj.interfaceList,
+        router.interfaceMember
+      );
+      console.log(rtrObj.interfaceList);
+
+      await rtrObj.save();
+
       // delete after executed
       await BridgeDomainMemberModel.deleteMany({
         idBridgeDomainList: idBridge,
