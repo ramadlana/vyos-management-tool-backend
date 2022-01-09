@@ -202,6 +202,12 @@ router.post("/", async (req, res) => {
       }
     } else if (req.body.role == "spoke") {
       const hubAddress = await RouterListModel.findOne({ role: "hub" });
+      if (!hubAddress) {
+        return res.status(400).send({
+          success: false,
+          message: "please add hub first and then spoke",
+        });
+      }
       let pushConfigInit = await configureVyosSpoke(
         "set",
         ipManagementWithoutMask,
@@ -240,13 +246,13 @@ router.post("/", async (req, res) => {
       });
     }
   } catch (error) {
-    let errMsg;
+    console.log(error);
     if (error.code === 11000) {
-      errMsg = "Node Already Added";
-    } else errMsg = error;
-    res
-      .status(400)
-      .send({
+      return res
+        .status(400)
+        .send({ success: false, message: "node already added" });
+    } else
+      res.status(400).send({
         success: false,
         message: "unhandled error #33444",
         detail: error,
