@@ -203,6 +203,7 @@ router.post("/", async (req, res) => {
     } else if (req.body.role == "spoke") {
       const hubAddress = await RouterListModel.findOne({ role: "hub" });
       if (!hubAddress) {
+        await RouterListModel.findByIdAndDelete(dataRouterInput._id);
         return res.status(400).send({
           success: false,
           message: "please add hub first and then spoke",

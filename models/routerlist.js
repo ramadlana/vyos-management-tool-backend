@@ -5,6 +5,7 @@ const Joi = require("joi");
 const routerListSchema = mongoose.Schema({
   routerName: {
     type: String,
+    unique: true,
     required: true,
     max: 50,
   },
