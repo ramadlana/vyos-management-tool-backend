@@ -55,10 +55,11 @@ router.get("/member-of-bd/:id", async (req, res) => {
   const empty = _.isEmpty(result);
   // if empty then return not found
   if (empty)
-    return res.status(404).send({
-      success: false,
-      message: "bridge domain not found",
-    });
+    // return res.status(404).send({
+    //   success: false,
+    //   message: "bridge domain not found",
+    // });
+    return res.status(200).send({ success: true, message: result });
 
   return res.status(200).send({ success: true, message: result });
 });
@@ -72,10 +73,11 @@ router.get("/member-vxlan-of-nodes/:id", async (req, res) => {
   const empty = _.isEmpty(result);
   // if empty then return not found
   if (empty)
-    return res.status(404).send({
-      success: false,
-      message: "bridge domain not found",
-    });
+    // return res.status(404).send({
+    //   success: false,
+    //   message: "bridge domain not found",
+    // });
+    return res.status(200).send({ success: true, message: result });
 
   return res.status(200).send({ success: true, message: result });
 });
@@ -105,6 +107,10 @@ router.post("/create-new-bridge-domain", async (req, res) => {
     const save = await newBridgeDomain.save();
     return res.status(200).send({ success: true, message: save });
   } catch (error) {
+    if (error.code === 11000)
+      return res
+        .status(400)
+        .send({ success: false, message: "BDNAME or VNI ID Already used" });
     return res.status(400).send({
       success: false,
       message: "failed to save to database",
@@ -295,7 +301,7 @@ router.post("/remove-bridge-domain-member", async (req, res) => {
   if (!rtrObj)
     return res
       .status(404)
-      .send({ success: false, message: "Bridge domain not found" });
+      .send({ success: false, message: "Router domain not found" });
 
   // get property needed
   const routerIp = removeMask(rtrObj.management);
@@ -303,6 +309,7 @@ router.post("/remove-bridge-domain-member", async (req, res) => {
   const vniId = brObj.vniId;
   const tunnelAdd = removeMask(rtrObj.tunnel);
 
+  // delete vni/vxlan interface from bridge
   const vxlanConf = await nodeToBridgeDomain(
     "delete",
     routerIp,
@@ -316,6 +323,24 @@ router.post("/remove-bridge-domain-member", async (req, res) => {
       message: "Remove config from router failed",
       details: vxlanConf,
     });
+
+  // Bring back interface associated into router list
+  const bridedomainmembermodel = await BridgeDomainMemberModel.findOne({
+    idRouterListModel: idRouter,
+    idBridgeDomainList: idBridgeDomain,
+  });
+  const associatedInterface = bridedomainmembermodel.interfaceMember;
+
+  // delete associate interface / deassociate interface list from bridge domain
+  associatedInterface.forEach(async (iface) => {
+    await assocIntVxlan("delete", routerIp, apiKeyDecrypted, vniId, iface);
+  });
+
+  // create new interface list, (interface from rtrobj+associated interface)
+  const newInterfaceList = _.union(rtrObj.interfaceList, associatedInterface);
+  await RouterListModel.findByIdAndUpdate(idRouter, {
+    interfaceList: newInterfaceList,
+  });
 
   // remove from BRIDGE DOMAIN MEMBER MODELS
   await BridgeDomainMemberModel.findOneAndDelete({
@@ -446,7 +471,7 @@ router.post("/deassoc-int-vxlan", async (req, res) => {
   const ipManagement = removeMask(rtrObj.management);
   const decryptKey = decrypt(rtrObj.keyApi);
   const vniId = bridgeObj.vniId;
-
+  // deassoc interface from vxlan
   const push = await assocIntVxlan(
     "delete",
     ipManagement,

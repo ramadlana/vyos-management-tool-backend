@@ -109,6 +109,19 @@ router.get("/router", async (req, res) => {
   return res.status(200).send({ success: true, message: allRouter });
 });
 
+// Router List (GET)
+router.get("/router/:idrouter", async (req, res) => {
+  const { idrouter } = req.params;
+  try {
+    const allRouter = await RouterListModel.findById(idrouter).select(
+      "_id management tunnel routerName interfaceList bgp role "
+    ); //Exclude _id and __v from json reply
+    return res.status(200).send({ success: true, message: allRouter });
+  } catch (error) {
+    return res.status(400).send({ success: false, message: error });
+  }
+});
+
 // Add New Router List (POST)
 router.post("/", async (req, res) => {
   let validate = validateInventory(req.body);
