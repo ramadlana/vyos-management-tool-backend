@@ -2,9 +2,9 @@
 const { auth_midleware } = require("../middleware/auth");
 const error = require("../middleware/error");
 // Routes
-const { routerList } = require("../routes/routerlist");
 const { user } = require("../routes/users");
 const { auth } = require("../routes/auth");
+const { routerList } = require("../routes/routerlist");
 const { configure } = require("../routes/configure");
 const { filemanagement } = require("../routes/filemanagement");
 
