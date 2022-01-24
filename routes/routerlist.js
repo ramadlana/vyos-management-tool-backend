@@ -274,6 +274,7 @@ router.post("/", async (req, res) => {
   }
 });
 
+// Load init
 router.post("/load-init", async (req, res) => {
   // getIpAddress and key From RouteList Model
   const router = await RouterListModel.findById(req.body.id);
@@ -313,6 +314,7 @@ router.post("/load-init", async (req, res) => {
   return res.status(400).send({ success: false, message: result });
 });
 
+// Save Init
 router.post("/save-init", async (req, res) => {
   // getIpAddress and key From RouteList Model
   const router = await RouterListModel.findById(req.body.id);
