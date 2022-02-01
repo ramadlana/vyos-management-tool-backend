@@ -16,6 +16,8 @@ const {
   confInter,
 } = require("../networkmodule/callvyos");
 
+const { validateIbgp, IbgpModel } = require("../models/ibgp");
+
 router.get("/bridgedomain", async (req, res) => {
   // find all item in (BridgeDomainListModel) then populate routerName in (inventoryModel) into associatedNode.nodeId field in (BridgeDomainListModel) then select (vxlanName vniId associatedNode) field only to return
   const bridgeDomain = await BridgeDomainListModel.find();
@@ -400,12 +402,13 @@ router.post("/assoc-int-vxlan", async (req, res) => {
   // Save member of bd model
   const bdmodelObj = await BridgeDomainMemberModel.findOne({
     idRouterListModel: idRouter,
+    idBridgeDomainList: idBridge,
   });
 
   const newInterfaceList = _.union(bdmodelObj.interfaceMember, [interface]);
 
   await BridgeDomainMemberModel.findOneAndUpdate(
-    { idRouterListModel: idRouter },
+    { idRouterListModel: idRouter, idBridgeDomainList: idBridge },
     {
       interfaceMember: newInterfaceList,
     }
@@ -452,6 +455,7 @@ router.post("/deassoc-int-vxlan", async (req, res) => {
   // get BridgeDomainMemberModel obj
   const brMemObj = await BridgeDomainMemberModel.findOne({
     idRouterListModel: idRouter,
+    idBridgeDomainList: idBridge,
   });
 
   // Remove {interface} from brMemObj.interfaceMember and move it to rtrObj.interfaceList
@@ -460,7 +464,7 @@ router.post("/deassoc-int-vxlan", async (req, res) => {
 
   // then save it to each
   await BridgeDomainMemberModel.findOneAndUpdate(
-    { idRouterListModel: idRouter },
+    { idRouterListModel: idRouter, idBridgeDomainList: idBridge },
     { interfaceMember: brMemObj.interfaceMember }
   );
   await RouterListModel.findByIdAndUpdate(idRouter, {
@@ -518,6 +522,7 @@ router.post("/dstnat", async (req, res) => {
   // call function on callvyos
 });
 
+// add ibgp address
 router.post("/ibgp-add-address", async (req, res) => {
   // get req body
   const { idRouter, interface, ipAddress } = req.body;
@@ -546,6 +551,32 @@ router.post("/ibgp-add-address", async (req, res) => {
         detail: conf,
       });
 
+    // cut interface from routelist into iBGP model
+    // check if interface not includes in interfaceslist on router obj
+    const exist = _.includes(rtr_obj.interfaceList, interface);
+
+    if (!exist)
+      return res.status(400).send({
+        success: false,
+        message: "that interface already on another bridge domain",
+      });
+    // if exist remove from list
+    if (exist) _.pull(rtr_obj.interfaceList, interface);
+
+    // save updated rtr_obj
+    await RouterListModel.findByIdAndUpdate(idRouter, {
+      interfaceList: rtr_obj.interfaceList,
+    });
+
+    // Save to DB
+    const savedb = new IbgpModel({
+      interface: interface,
+      ipAddress: ipAddress,
+      idRouter: idRouter,
+      routerName: rtr_obj.routerName,
+    });
+    await savedb.save();
+
     // return success
     return res.status(200).send({
       success: true,
@@ -556,11 +587,20 @@ router.post("/ibgp-add-address", async (req, res) => {
   }
 });
 
+// remove ibgp address
 router.post("/ibgp-remove-address", async (req, res) => {
   // get req body
-  const { idRouter, interface, ipAddress } = req.body;
+  const { id_ibgp } = req.body;
+
+  // get obj ibgo
+  const ibgp_obj = await IbgpModel.findById(id_ibgp);
+  if (!ibgp_obj)
+    return res
+      .status(200)
+      .send({ success: false, message: "ibgp list is empty" });
+
   // get router obj info
-  const rtr_obj = await RouterListModel.findById(idRouter);
+  const rtr_obj = await RouterListModel.findById(ibgp_obj.idRouter);
   if (!rtr_obj)
     return res
       .status(404)
@@ -574,8 +614,8 @@ router.post("/ibgp-remove-address", async (req, res) => {
       "delete",
       managementIP,
       keyApi,
-      interface,
-      ipAddress
+      ibgp_obj.interface,
+      ibgp_obj.ipAddress
     );
     if (!conf.success)
       return res.status(400).send({
@@ -584,14 +624,66 @@ router.post("/ibgp-remove-address", async (req, res) => {
         detail: conf,
       });
 
+    // cut / remove from DB
+
+    // Get ip router obj and grab ip address
+    const rtrObj = await RouterListModel.findById(ibgp_obj.idRouter);
+    if (!rtrObj)
+      return res.status(404).send({
+        success: false,
+        message: "id router not found",
+      });
+
+    // Merge interface list from ibgp_objt into router object
+    const newinterfacelist = _.union(rtrObj.interfaceList, [
+      ibgp_obj.interface,
+    ]);
+
+    // then save it to router list model
+    await RouterListModel.findByIdAndUpdate(ibgp_obj.idRouter, {
+      interfaceList: newinterfacelist,
+    });
+
+    // remove from ibgp model
+    await IbgpModel.findByIdAndDelete(id_ibgp);
+
     // return success
     return res.status(200).send({
       success: true,
       message: "successfully deleted from iBGP routing table",
     });
   } catch (error) {
+    console.log(error);
     return res.status(400).send({ success: false, message: error });
   }
 });
 
+// display list ibgp all
+router.get("/ibgp-list", async (req, res) => {
+  // get list of rules and return it
+  const list = await IbgpModel.find();
+  if (!list)
+    return res.status(200).send({
+      success: false,
+      message: "iBGP list is empty",
+    });
+  return res.status(200).send({ success: true, message: list });
+});
+
+// display list ibgp by router id
+router.get("/ibgp-list/:routerId", async (req, res) => {
+  // get list of rules and return it
+  const { routerId } = req.params;
+
+  // get list of rules and return it
+  const list = await IbgpModel.find({ idRouter: routerId });
+  if (!list)
+    return res.status(200).send({
+      success: false,
+      message: "iBGP list is empty",
+    });
+  return res.status(200).send({ success: true, message: list });
+});
+
+// Export router
 exports.configure = router;

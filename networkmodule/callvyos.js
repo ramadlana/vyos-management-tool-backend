@@ -1,4 +1,6 @@
 const encodedParams = new URLSearchParams();
+const tunnel_mtu = "1476";
+
 const fetch = require("node-fetch");
 const https = require("https");
 const httpsAgent = new https.Agent({
@@ -24,7 +26,7 @@ async function configureVyosHub(
   encodedParams.set(
     "data",
     `[{"op": "${invokeType}", "path": ["interfaces", "tunnel", "tun100", "address", "${tunnelAdd}"]},
-  {"op": "${invokeType}", "path": ["interfaces", "tunnel", "tun100", "mtu", "8024"]},
+  {"op": "${invokeType}", "path": ["interfaces", "tunnel", "tun100", "mtu", "${tunnel_mtu}"]},
   {"op": "${invokeType}", "path": ["interfaces", "tunnel", "tun100", "encapsulation", "gre"]},
   {"op": "${invokeType}", "path": ["interfaces", "tunnel", "tun100", "source-address", "${tunnelSourceAdd}"]},
   {"op": "${invokeType}", "path": ["interfaces", "tunnel", "tun100", "multicast", "enable"]},
@@ -106,7 +108,7 @@ async function configureVyosSpoke(
   encodedParams.set(
     "data",
     `[{"op": "${invokeType}", "path": ["interfaces", "tunnel", "tun100", "address", "${tunnelAdd}"]},
-  {"op": "${invokeType}", "path": ["interfaces", "tunnel", "tun100", "mtu", "8024"]},
+  {"op": "${invokeType}", "path": ["interfaces", "tunnel", "tun100", "mtu", "${tunnel_mtu}"]},
   {"op": "${invokeType}", "path": ["interfaces", "tunnel", "tun100", "encapsulation", "gre"]},
   {"op": "${invokeType}", "path": ["interfaces", "tunnel", "tun100", "source-address", "${tunnelSourceAdd}"]},
   {"op": "${invokeType}", "path": ["interfaces", "tunnel", "tun100", "multicast", "enable"]},
@@ -278,7 +280,7 @@ async function loadConfigInit(managementIP, keyApi) {
   encodedParams.set(
     "data",
     `
-    {"op": "load", "file": "/config/default-by-controller.config"}
+    {"op": "load", "file": "/config/skripsi.config"}
     `
   );
   encodedParams.set("key", `${keyApi}`);

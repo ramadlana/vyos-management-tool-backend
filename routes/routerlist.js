@@ -84,7 +84,7 @@ router.get("/check-underlay", async (req, res) => {
   const checkAlreadySetup = await BlockTunnelModel.countDocuments();
   if (checkAlreadySetup !== 0)
     return res
-      .status(400)
+      .status(200)
       .send({ success: false, message: "You already setup underlay" });
   return res
     .status(200)
@@ -95,9 +95,18 @@ router.get("/check-underlay", async (req, res) => {
 router.get("/info-underlay", async (req, res) => {
   const count_used = await BlockTunnelModel.count({ isClaimed: true });
   const count_avail = await BlockTunnelModel.count({ isClaimed: false });
+
+  // get block ip address tunnel
+  const blockIpTunnel = await BlockTunnelModel.findOne();
+  const netmaskBlockIp = new Netmask(blockIpTunnel.ipBlockTunnel);
+
   return res.status(200).send({
     success: true,
-    message: { underlay_used: count_used, underlay_available: count_avail },
+    message: {
+      underlay_used: count_used,
+      underlay_available: count_avail,
+      ip_tunnel_block: netmaskBlockIp.base + "/" + netmaskBlockIp.bitmask,
+    },
   });
 });
 
@@ -260,7 +269,6 @@ router.post("/", async (req, res) => {
       });
     }
   } catch (error) {
-    console.log(error);
     if (error.code === 11000) {
       return res
         .status(400)
