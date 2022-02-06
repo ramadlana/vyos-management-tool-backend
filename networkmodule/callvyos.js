@@ -7,6 +7,7 @@ const httpsAgent = new https.Agent({
   rejectUnauthorized: false,
 });
 
+// DMVPN holding time tunnel, lifetime ipsec ESP and IKE group ini (second)
 const dmvpnParams = {
   nhrpTunnelHoldingTime: 100,
   ipsecEspGroupLifetime: 300,
@@ -61,7 +62,6 @@ async function configureVyosHub(
   {"op": "${invokeType}", "path": ["vpn", "ipsec", "profile", "NHRPVPN", "ike-group", "IKE-HUB"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "local-as", "${localAs}"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "address-family", "ipv4-unicast", "maximum-paths", "ibgp", "4"]},
-  {"op": "${invokeType}", "path": ["protocols", "bgp", "address-family", "ipv4-unicast", "redistribute", "connected"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "listen", "range", "${tunnelBlock}", "peer-group", "evpn"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "parameters", "log-neighbor-changes"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "peer-group", "evpn", "address-family", "ipv4-unicast", "route-reflector-client"]},
@@ -145,7 +145,6 @@ async function configureVyosSpoke(
   {"op": "${invokeType}", "path": ["vpn", "ipsec", "profile", "NHRPVPN", "ike-group", "IKE-HUB"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "local-as", "${localAs}"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "address-family", "ipv4-unicast", "maximum-paths", "ibgp", "4"]},
-  {"op": "${invokeType}", "path": ["protocols", "bgp", "address-family", "ipv4-unicast", "redistribute", "connected"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "address-family", "l2vpn-evpn", "advertise-all-vni"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "neighbor", "${hubTunnelWithoutMask}", "peer-group", "evpn"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "parameters", "log-neighbor-changes"]},
@@ -354,3 +353,7 @@ exports.configureVyosSpoke = configureVyosSpoke;
 exports.saveConfigInit = saveConfigInit;
 exports.loadConfigInit = loadConfigInit;
 exports.confInter = confInter;
+
+// {"op": "${invokeType}", "path": ["protocols", "bgp", "address-family", "ipv4-unicast", "maximum-paths", "ibgp", "4"]},
+//   {"op": "${invokeType}", "path": ["protocols", "bgp", "address-family", "ipv4-unicast", "redistribute", "connected"]},
+//   {"op": "${invokeType}", "path": ["protocols", "bgp", "listen", "range", "${tunnelBlock}", "peer-group", "evpn"]},

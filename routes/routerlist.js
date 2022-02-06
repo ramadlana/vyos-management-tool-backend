@@ -98,14 +98,24 @@ router.get("/info-underlay", async (req, res) => {
 
   // get block ip address tunnel
   const blockIpTunnel = await BlockTunnelModel.findOne();
+  if (!blockIpTunnel)
+    return res.status(200).send({
+      success: true,
+      message: {
+        underlay_used: "please deploy underlay first",
+        underlay_available: "please deploy underlay first",
+        ip_tunnel_block: "please deploy underlay first",
+      },
+    });
   const netmaskBlockIp = new Netmask(blockIpTunnel.ipBlockTunnel);
+  const ip_tunnel_block = netmaskBlockIp.base + "/" + netmaskBlockIp.bitmask;
 
   return res.status(200).send({
     success: true,
     message: {
       underlay_used: count_used,
       underlay_available: count_avail,
-      ip_tunnel_block: netmaskBlockIp.base + "/" + netmaskBlockIp.bitmask,
+      ip_tunnel_block: ip_tunnel_block,
     },
   });
 });
@@ -179,7 +189,11 @@ router.post("/", async (req, res) => {
     if (!dataInterface.success)
       return res
         .status(400)
-        .send({ success: false, message: "wrong router vyos API KEY" });
+        .send({
+          success: false,
+          message:
+            "Cannot reach to Router or wrong router vyos API KEY. Please check Connectivity and API Key",
+        });
     // Associate newIpaddress ro router attributes
     const newRouterInput = new RouterListModel({
       management: req.body.management,
