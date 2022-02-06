@@ -544,7 +544,6 @@ router.post("/ibgp-add-address", async (req, res) => {
       interface,
       ipAddress
     );
-    console.log(conf);
     if (!conf.success)
       return res.status(400).send({
         success: false,

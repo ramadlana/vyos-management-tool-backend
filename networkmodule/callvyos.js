@@ -22,7 +22,8 @@ async function configureVyosHub(
   nhrpSecret,
   localAs,
   tunnelBlock,
-  remoteAs
+  remoteAs,
+  iPmanagementSubnet
 ) {
   encodedParams.set(
     "data",
@@ -60,6 +61,14 @@ async function configureVyosHub(
   {"op": "${invokeType}", "path": ["vpn", "ipsec", "profile", "NHRPVPN", "bind", "tunnel", "tun100"]},
   {"op": "${invokeType}", "path": ["vpn", "ipsec", "profile", "NHRPVPN", "esp-group", "ESP-HUB"]},
   {"op": "${invokeType}", "path": ["vpn", "ipsec", "profile", "NHRPVPN", "ike-group", "IKE-HUB"]},
+  {"op": "${invokeType}", "path": ["policy", "prefix-list", "pl-ibgp-deny", "rule", "1", "action","permit"]},
+  {"op": "${invokeType}", "path": ["policy", "prefix-list", "pl-ibgp-deny", "rule", "1", "prefix", "${iPmanagementSubnet}"]},
+  {"op": "${invokeType}", "path": ["policy", "prefix-list", "pl-ibgp-deny", "rule", "2", "action","permit"]},
+  {"op": "${invokeType}", "path": ["policy", "prefix-list", "pl-ibgp-deny", "rule", "2", "prefix", "${tunnelBlock}"]},
+  {"op": "${invokeType}", "path": ["policy", "route-map", "rmap-ibgp-deny", "rule", "1", "action", "deny"]},
+  {"op": "${invokeType}", "path": ["policy", "route-map", "rmap-ibgp-deny", "rule", "1", "match", "ip", "address", "prefix-list", "pl-ibgp-deny"]},
+  {"op": "${invokeType}", "path": ["policy", "route-map", "rmap-ibgp-deny", "rule", "2", "action", "permit"]},
+  {"op": "${invokeType}", "path": ["protocols", "bgp", "address-family", "ipv4-unicast",  "redistribute", "connected", "route-map", "rmap-ibgp-deny"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "local-as", "${localAs}"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "address-family", "ipv4-unicast", "maximum-paths", "ibgp", "4"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "listen", "range", "${tunnelBlock}", "peer-group", "evpn"]},
@@ -97,7 +106,9 @@ async function configureVyosSpoke(
   hubTunnel,
   hubManagement,
   localAs,
-  remoteAs
+  remoteAs,
+  iPmanagementSubnet,
+  iPtunnelSubnet
 ) {
   let hubManagementStripMask = hubManagement.substr(
     0,
@@ -143,6 +154,14 @@ async function configureVyosSpoke(
   {"op": "${invokeType}", "path": ["vpn", "ipsec", "profile", "NHRPVPN", "bind", "tunnel", "tun100"]},
   {"op": "${invokeType}", "path": ["vpn", "ipsec", "profile", "NHRPVPN", "esp-group", "ESP-HUB"]},
   {"op": "${invokeType}", "path": ["vpn", "ipsec", "profile", "NHRPVPN", "ike-group", "IKE-HUB"]},
+  {"op": "${invokeType}", "path": ["vpn", "ipsec", "profile", "NHRPVPN", "ike-group", "IKE-HUB"]},
+  {"op": "${invokeType}", "path": ["policy", "prefix-list", "pl-ibgp-deny", "rule", "1", "action","permit"]},
+  {"op": "${invokeType}", "path": ["policy", "prefix-list", "pl-ibgp-deny", "rule", "1", "prefix", "${iPmanagementSubnet}"]},
+  {"op": "${invokeType}", "path": ["policy", "prefix-list", "pl-ibgp-deny", "rule", "2", "action","permit"]},
+  {"op": "${invokeType}", "path": ["policy", "prefix-list", "pl-ibgp-deny", "rule", "2", "prefix", "${iPtunnelSubnet}"]},
+  {"op": "${invokeType}", "path": ["policy", "route-map", "rmap-ibgp-deny", "rule", "1", "action", "deny"]},
+  {"op": "${invokeType}", "path": ["policy", "route-map", "rmap-ibgp-deny", "rule", "1", "match", "ip", "address", "prefix-list", "pl-ibgp-deny"]},
+  {"op": "${invokeType}", "path": ["policy", "route-map", "rmap-ibgp-deny", "rule", "2", "action", "permit"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "local-as", "${localAs}"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "address-family", "ipv4-unicast", "maximum-paths", "ibgp", "4"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "address-family", "l2vpn-evpn", "advertise-all-vni"]},
@@ -150,6 +169,7 @@ async function configureVyosSpoke(
   {"op": "${invokeType}", "path": ["protocols", "bgp", "parameters", "log-neighbor-changes"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "peer-group", "evpn", "address-family", "ipv4-unicast", "nexthop-self"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "peer-group", "evpn", "address-family", "l2vpn-evpn", "nexthop-self"]},
+  {"op": "${invokeType}", "path": ["protocols", "bgp", "address-family", "ipv4-unicast", "redistribute", "connected", "route-map", "rmap-ibgp-deny"]},
   {"op": "${invokeType}", "path": ["protocols", "bgp", "peer-group", "evpn", "remote-as", "${remoteAs}"]}]`
   );
   encodedParams.set("key", `${keyApi}`);
@@ -255,7 +275,7 @@ async function saveConfigInit(managementIP, keyApi) {
   encodedParams.set(
     "data",
     `
-    {"op": "save", "file": "/config/default-by-controller.config"}
+    {"op": "save", "file": "/config/skripsi.config"}
     `
   );
   encodedParams.set("key", `${keyApi}`);

@@ -165,6 +165,7 @@ router.post("/", async (req, res) => {
     conf.get("cryptoSecret")
   ).toString();
 
+  // Get IP management without mask
   let ipManagementWithoutMask = req.body.management;
   ipManagementWithoutMask = ipManagementWithoutMask.substr(
     0,
@@ -187,13 +188,11 @@ router.post("/", async (req, res) => {
       req.body.keyApi
     );
     if (!dataInterface.success)
-      return res
-        .status(400)
-        .send({
-          success: false,
-          message:
-            "Cannot reach to Router or wrong router vyos API KEY. Please check Connectivity and API Key",
-        });
+      return res.status(400).send({
+        success: false,
+        message:
+          "Cannot reach to Router or wrong router vyos API KEY. Please check Connectivity and API Key",
+      });
     // Associate newIpaddress ro router attributes
     const newRouterInput = new RouterListModel({
       management: req.body.management,
@@ -217,9 +216,20 @@ router.post("/", async (req, res) => {
     const getMask = new Netmask(getTunnelBlockSubnet);
     const tunnelBlockSubnet = `${getMask.base}/${getMask.bitmask}`;
 
+    // function netmask to get subnet block management
+    const getMaskManagement = new Netmask(req.body.management);
+    const iPmanagementSubnet = `${getMaskManagement.base}/${getMaskManagement.bitmask}`;
+
     const dataRouterInput = await newRouterInput.save();
     if (dataRouterInput.status === "error")
       return res.status(400).send({ success: false, message: dataRouterInput });
+
+    const saveInitRouter = await saveConfigInit(
+      ipManagementWithoutMask,
+      req.body.keyApi
+    );
+    console.log("ini save", saveInitRouter, "end iniiii");
+
     if (req.body.role === "hub") {
       let pushConfigInit = await configureVyosHub(
         "set",
@@ -229,7 +239,8 @@ router.post("/", async (req, res) => {
         req.body.nhrpSecret,
         newRouterInput.bgp.localAs,
         tunnelBlockSubnet,
-        newRouterInput.bgp.remoteAs
+        newRouterInput.bgp.remoteAs,
+        iPmanagementSubnet
       );
       resultConfig = pushConfigInit;
       // if save to db success but, something wrong in call vyos, its rollback to delete in database entry
@@ -254,9 +265,12 @@ router.post("/", async (req, res) => {
         hubAddress.tunnel,
         hubAddress.management,
         newRouterInput.bgp.localAs,
-        newRouterInput.bgp.remoteAs
+        newRouterInput.bgp.remoteAs,
+        iPmanagementSubnet,
+        tunnelBlockSubnet
       );
       resultConfig = pushConfigInit;
+      console.log(resultConfig);
 
       // if save to db success but, something wrong in call vyos, its rollback to delete in database entry
       if (!resultConfig.success) {
