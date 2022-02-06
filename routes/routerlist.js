@@ -66,7 +66,7 @@ router.post("/resetunderlay", async (req, res) => {
     return res.status(400).send({
       success: false,
       message:
-        "there some router or node is using underlay, please reset all nodes before reset underlay",
+        "Node list must empty before reset underlay. Please Remove all node in Fabric",
     });
 
   // if data not exist. delete blocktunnelmodels all record
